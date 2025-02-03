@@ -69,6 +69,8 @@ class _HomeWidgetState extends State<HomeWidget> {
         if (changeType == 'add') {
           final entity = Albatross.fromJson(entityData);
           entities.add(entity);
+        } else if(changeType == 'reset') {
+          _getDataFromAPI();
         }
       });
     });

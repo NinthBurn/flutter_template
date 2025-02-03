@@ -16,7 +16,7 @@ class ApiService {
   static const String getUrl = '$baseUrl/transactions';
   static const String entityUrl = '$baseUrl/transaction';
 
-  static const Duration socketTimeout = Duration(seconds: 1);
+  static const Duration socketTimeout = Duration(seconds: 2);
   WebSocketChannel? _channel;
 
   bool _isConnected = false;
@@ -30,6 +30,17 @@ class ApiService {
 
   Future<bool> checkWebSocketConnection() async {
     return _isConnected;
+  }
+
+  void tryReconnect() async {
+    Future.delayed(socketTimeout).then((value) => {
+      if(!_isConnected) {
+        _socketController.add({
+          'type': 'reset',
+          'data': ''
+        })
+      }
+    });
   }
 
   Future<bool> connectWebSocket() async {
@@ -49,6 +60,7 @@ class ApiService {
         }).catchError((error) {
           _isConnected = false;
           _changesSynced = false;
+          tryReconnect();
           logger.w("WebSocket connection failed: $error");
           completer.complete(false);
         }),
@@ -56,6 +68,7 @@ class ApiService {
         Future.delayed(socketTimeout, () {
           if (!completer.isCompleted) {
             logger.w("WebSocket connection timed out.");
+            tryReconnect();
             completer.complete(false);
           }
         }),
@@ -75,6 +88,9 @@ class ApiService {
         _isConnected = false;
         _changesSynced = false;
         logger.w("WebSocket connection closed.");
+        tryReconnect();
+
+
         if (!completer.isCompleted) {
           completer.complete(false);
         }
@@ -82,6 +98,8 @@ class ApiService {
       }, onError: (error) {
         _isConnected = false;
         _changesSynced = false;
+        tryReconnect();
+
         logger.w("WebSocket connection error: $error");
         if (!completer.isCompleted) {
           completer.complete(false);
@@ -93,6 +111,8 @@ class ApiService {
       logger.w("WebSocket connection error: $e");
       _isConnected = false;
       _changesSynced = false;
+      tryReconnect();
+
       return Future.value(false);
     }
   }
