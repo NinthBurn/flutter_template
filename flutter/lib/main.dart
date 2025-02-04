@@ -6,6 +6,8 @@ import 'package:ma_exam_t/inspect_page.dart';
 import 'package:ma_exam_t/add_page.dart';
 import 'package:ma_exam_t/edit_page.dart';
 import 'package:ma_exam_t/models/Albatross.dart';
+import 'package:ma_exam_t/section_1.dart';
+import 'package:ma_exam_t/section_2.dart';
 import 'package:ma_exam_t/services/api_service.dart';
 
 var logger = Logger();
@@ -36,7 +38,7 @@ class MyApp extends StatelessWidget {
       ),
       routes: {
         "/add": (context) => AddPage(),
-        "/": (context) => HomeWidget(),
+        "/": (context) => const HomeWidget(),
       },
     );
   }
@@ -55,6 +57,7 @@ class _HomeWidgetState extends State<HomeWidget> {
   ApiService apiService = ApiService();
   late List<Albatross> entities;
   bool isLoading = true;
+  bool isOffline = false;
   static const String appTitle = 'Albatross';
 
   @override
@@ -69,8 +72,10 @@ class _HomeWidgetState extends State<HomeWidget> {
         if (changeType == 'add') {
           final entity = Albatross.fromJson(entityData);
           entities.add(entity);
-        } else if(changeType == 'reset') {
-          _getDataFromAPI();
+
+        } else if(changeType == 'disconnect') {
+          isOffline = true;
+          _showReconnectSnackBar();
         }
       });
     });
@@ -82,6 +87,7 @@ class _HomeWidgetState extends State<HomeWidget> {
       apiService.connectWebSocket().then((value) async => {
         list = await apiService.getAllEntities(),
         setState(() {
+          isOffline = false;
           entities = list;
           isLoading = false;
         })
@@ -143,7 +149,7 @@ class _HomeWidgetState extends State<HomeWidget> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: <Widget>[
             const Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: EdgeInsets.all(16.0),
                 child:Text("Could not fetch data from the server or there is nothing locally",
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -210,7 +216,7 @@ class _HomeWidgetState extends State<HomeWidget> {
                     _editButtonWidget(context, index),
                     const SizedBox(width: 10),
                     _deleteButtonWidget(context, index, entity.id),
-                    const SizedBox(width: 16),
+                    // const SizedBox(width: 16),
                   ],
                 ),
               ),
@@ -362,6 +368,66 @@ class _HomeWidgetState extends State<HomeWidget> {
     );
   }
 
+  Widget _firstSectionButton() {
+    return IconButton(
+      icon: const Icon(Icons.document_scanner),
+      color: Colors.white,
+      tooltip: 'Section 1',
+      onPressed: () {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Section1Page(),
+          ),
+        ).then((value) => {
+          _showReconnectSnackBar()
+        });
+      },
+    );
+  }
+
+  Widget _secondSectionButton() {
+    return IconButton(
+      icon: const Icon(Icons.content_paste_search),
+      color: Colors.white,
+      tooltip: 'Section 2',
+      onPressed: () {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Section2Page(),
+          ),
+        ).then((value) => {
+          _showReconnectSnackBar()
+        });
+      },
+    );
+  }
+
+  void _showReconnectSnackBar() {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    if(isOffline) {
+      final snackBar = SnackBar(
+        content: const Text('Running in offline mode'),
+        duration: const Duration(days: 365),
+        action: SnackBarAction(
+          label: 'Retry',
+          onPressed: () {
+            _getDataFromAPI();
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -373,6 +439,10 @@ class _HomeWidgetState extends State<HomeWidget> {
         ),
         centerTitle: true,
         backgroundColor: const Color(0xff008bcc),
+        actions: [
+          _firstSectionButton(),
+          _secondSectionButton()
+        ],
       ),
       body: entityListWidget(),
       floatingActionButton: FloatingActionButton(

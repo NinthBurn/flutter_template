@@ -22,8 +22,8 @@ class _InspectPageState extends State<InspectPage> {
   int? id;
   bool _isLoading = true;
 
-  TextEditingController nameController = new TextEditingController(text : "name");
-  TextEditingController dateController = new TextEditingController(text : "date");
+  TextEditingController nameController = TextEditingController(text : "name");
+  TextEditingController dateController = TextEditingController(text : "date");
 
 
   @override

@@ -1,4 +1,3 @@
-
 class Albatross {
   int id;
   DateTime date;

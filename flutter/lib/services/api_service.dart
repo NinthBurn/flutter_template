@@ -10,11 +10,13 @@ var logger = Logger();
 
 class ApiService {
   static final ApiService _instance = ApiService._constructor();
-  static const String baseUrl = 'http://192.168.1.6:2528';
-  static const String socketUrl = 'ws://192.168.1.6:2528';
+  static const String baseUrl = 'http://192.168.1.4:2528';
+  static const String socketUrl = 'ws://192.168.1.4:2528';
 
   static const String getUrl = '$baseUrl/transactions';
   static const String entityUrl = '$baseUrl/transaction';
+  static const String section1URL = '$baseUrl/allTransactions';
+  static const String section2URL = '$baseUrl/allTransactions';
 
   static const Duration socketTimeout = Duration(seconds: 2);
   WebSocketChannel? _channel;
@@ -33,14 +35,12 @@ class ApiService {
   }
 
   void tryReconnect() async {
-    Future.delayed(socketTimeout).then((value) => {
       if(!_isConnected) {
         _socketController.add({
-          'type': 'reset',
+          'type': 'disconnect',
           'data': ''
-        })
+        });
       }
-    });
   }
 
   Future<bool> connectWebSocket() async {
@@ -139,7 +139,7 @@ class ApiService {
       );
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final jsonResponse = json.decode(response.body);
+        // final jsonResponse = json.decode(response.body);
         return 1;
       } else {
         throw Exception('Failed to add component to server.');
@@ -208,6 +208,79 @@ class ApiService {
     }
   }
 
+  // maybe make a class for whatever you want to return
+  // I will use a generic map
+  Future<List<Map<String, dynamic>>> getSection1Data() async {
+    if (await checkWebSocketConnection()) {
+      final response = await http.get(Uri.parse(section1URL));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final List<dynamic> jsonResponse = json.decode(response.body);
+
+        List<Map<String, dynamic>> entities = [];
+
+        for (var entityData in jsonResponse) {
+          Albatross entity = Albatross.fromJson(entityData);
+          entities.add({
+            'name': entity.name,
+            'date': entity.date,
+          });
+        }
+
+        logger.i("Fetched data from server");
+
+        // sort
+        entities.sort((m1, m2) {
+          var r = m1['name'].compareTo(m2['name']);
+          if (r != 0) return r;
+          return m1['name'].compareTo(m2['name']);
+        });
+
+        // filter
+        // entities.where((m) => m['name'].startsWith('Gr')).toList();
+
+        return entities;
+
+      } else {
+        throw Exception('Failed to fetch entities from server.');
+      }
+
+    } else {
+      throw Exception("Not connected to server");
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getSection2Data() async {
+    if (await checkWebSocketConnection()) {
+      final response = await http.get(Uri.parse(section1URL));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final List<dynamic> jsonResponse = json.decode(response.body);
+
+        List<Map<String, dynamic>> entities = [];
+
+        for (var entityData in jsonResponse) {
+          Albatross entity = Albatross.fromJson(entityData);
+          entities.add({
+            'name': entity.name,
+            'date': entity.date,
+          });
+        }
+
+        logger.i("Fetched data from server");
+
+        // filter
+        return entities.where((m) => m['date'].day > 15).toList();
+
+      } else {
+        throw Exception('Failed to fetch entities from server.');
+      }
+
+    } else {
+      throw Exception("Not connected to server");
+    }
+  }
+
   Future<Albatross?> getEntityFromDB(int id) async {
       return DatabaseService.instance.getEntityById(id);
   }
@@ -263,7 +336,7 @@ class ApiService {
 
     for (var change in offlineChanges) {
       String changeType = change['change_type'];
-      int id = change['id'];
+      // int id = change['id'];
       String data = change['data'];
 
       try {
