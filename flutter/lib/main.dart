@@ -84,10 +84,10 @@ class _HomeWidgetState extends State<HomeWidget> {
   void _getDataFromAPI() async {
     try {
       List<Albatross> list;
+      isOffline = false;
       apiService.connectWebSocket().then((value) async => {
         list = await apiService.getAllEntities(),
         setState(() {
-          isOffline = false;
           entities = list;
           isLoading = false;
         })
